@@ -7,6 +7,6 @@ The heavy lifting is done by the gr-gsm software suite, especially grgsm_livemon
 # Installation, Setup
 
 Depending on your OS and available gnuradio version, you will need different versions of gr-gsm:
-* gnuradio<=3.8: [ptrkrysik's main branch](https://github.com/ptrkrysik/gr-gsm)
-* gnradio>3.8: Try [bkerler's fork](https://github.com/bkerler/gr-gsm), which works for up to gnuradio 3.11
-                or [velichkov's fork](https://github.com/bkerler/gr-gsm)
+* gnuradio $<=$ 3.8: [ptrkrysik's main branch](https://github.com/ptrkrysik/gr-gsm)
+* gnradio $>$ 3.8: Try [bkerler's fork](https://github.com/bkerler/gr-gsm) or [velichkov's fork](https://github.com/bkerler/gr-gsm), which work for up to gnuradio 3.11
+                
