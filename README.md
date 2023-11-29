@@ -20,3 +20,5 @@ Usage
 but could be rewritten to use any wireshark / tshark filter
 * grgsm_collection_monitor has a watchdog that restarts the SDR monitoring and filtering if either grgsm_livemon or tshark fails, or if not enough packages are collected in a certain time span
 * cipher_suite: Takes an .json or .csv file of recorded data and produces plots of the development over time
+* Dockerfile: work in progress to make testing mobile, base ubuntu image plus added tshark and gr-gsm, start with 
+docker run --it -v /dev/bus/usb:/dev/bus/usb and -v local/path/to/data:/tmp/ 
