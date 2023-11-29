@@ -11,7 +11,12 @@ Depending on your OS and available gnuradio version, you will need different ver
 * gnradio==3.9 or higher: Try [bkerler's fork](https://github.com/bkerler/gr-gsm) or [velichkov's fork](https://github.com/bkerler/gr-gsm), which work for up to gnuradio 3.11  
 
 
-Installation and usage
-======================
 Please see project's [wiki](https://osmocom.org/projects/gr-gsm/wiki/index) for information on [installation](https://osmocom.org/projects/gr-gsm/wiki/Installation) and [usage](https://github.com/ptrkrysik/gr-gsm/wiki/Usage) of gr-gsm.
                 
+Usage
+======================
+
+* grgsm_collection_monitor: Does the recording with grgsm and tshark, filters for package details, here the used encryption algorithms,
+but could be rewritten to use any wireshark / tshark filter
+* grgsm_collection_monitor has a watchdog that restarts the SDR monitoring and filtering if either grgsm_livemon or tshark fails, or if not enough packages are collected in a certain time span
+* cipher_suite: Takes an .json or .csv file of recorded data and produces plots of the development over time
