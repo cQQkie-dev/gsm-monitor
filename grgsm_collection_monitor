@@ -1,6 +1,6 @@
 #!/bin/bash
 # Set debug mode
-set -x
+set -xv
 # read frequency from command line
 # if no frequency is provided, then exit with code 1
 if [ $# -eq 0 ]; then
@@ -24,9 +24,9 @@ grgsm_collector(){
 
   # If installed, then start capture and parallely run grgsm_livemon
   tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' -T fields -e frame.number -e frame.time -e \
-  gsm_a.rr.algorithm_identifier -E header=y -E separator=, -E quote=d -E occurrence=f > tshark_"$timestamp"_test.csv &
+  gsm_a.rr.algorithm_identifier -E header=y -E separator=, -E quote=d -E occurrence=f > /app/output/tshark_"$timestamp"_test.csv &
 
-  grgsm_livemon -f $1 -g 40 > /dev/null
+  grgsm_livemon_headless -f $1 -g 40 > /dev/null
 }
 
 # define function watchdog
@@ -36,7 +36,7 @@ watchdog() {
     then
         echo "Restarting grgsm_livemon"
         # call grgsm_livemon function
-        grgsm_livemon -f $1 -g 40 > /dev/null
+        grgsm_livemon_headless -f $1 -g 40 > /dev/null
         # Ramp up time for grgsm_livemon before starting tshark and checking for packets
         sleep 10
     fi
@@ -49,7 +49,7 @@ watchdog() {
         timestamp=$(date +%s)
         # call tshark with appropriate parameters
         tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' -T fields -e frame.number -e frame.time -e \
-        gsm_a.rr.algorithm_identifier -E header=y -E separator=, -E quote=d -E occurrence=f > tshark_"$timestamp"_test.csv &
+        gsm_a.rr.algorithm_identifier -E header=y -E separator=, -E quote=d -E occurrence=f > /app/output/tshark_"$timestamp"_test.csv &
 
     fi
 
@@ -57,7 +57,7 @@ watchdog() {
     # if both running then run tshark on loopback interface for 10 seconds and count number of packets received
     tshark -i lo -f udp -a duration:10 -w /tmp/tshark.pcap &> /dev/null &
     tshark_pid=$!
-    sleep 10
+    sleep 30
     kill $tshark_pid
 
     # count number of packets received
@@ -75,10 +75,10 @@ watchdog() {
     fi
 
     # else exit with code 0
-    exit 0
+    #exit 0
 }
 # Check if grgsm_livemon is installed
-if ! [ -x "$(command -v grgsm_livemon)" ]; then
+if ! [ -x "$(command -v grgsm_livemon_headless)" ]; then
   echo 'Error: grgsm_livemon is not installed.' >&2
   exit 1
 fi
@@ -96,6 +96,6 @@ grgsm_collector $1 &
 # While loop to run watchdog function every 5 minutes
 while true
 do
-    watchdog $1
     sleep 300
+    watchdog $1
 done

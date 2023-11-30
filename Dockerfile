@@ -3,6 +3,7 @@ FROM ubuntu:22.04
 # Install dependencies non-interactively
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
+    bash \
     python3 \
     python3-docutils \
     python3-scipy \
@@ -23,8 +24,8 @@ RUN apt-get update && apt-get install -y \
     libosmocore-dev \
     gr-osmosdr \
     # Required to clone gr-gsm
-    git
-    #&& rm -rf /var/lib/apt/lists/*
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Clone gr-gsm \
 RUN git clone https://github.com/bkerler/gr-gsm.git \
@@ -35,7 +36,11 @@ RUN git clone https://github.com/bkerler/gr-gsm.git \
     && mkdir $HOME/.grc_gnuradio/ $HOME/.gnuradio/ \
     && make \
     && make install \
-    && ldconfig
-    #&& cd ../.. \
-    #&& rm -rf gr-gsm
+    && ldconfig \
+    && cd ../.. \
+    && rm -rf gr-gsm
 
+COPY grgsm_collection_monitor /collector.sh
+RUN chmod +x /collector.sh
+#RUN apt update && apt install nano
+CMD ["/collector.sh $1"]
