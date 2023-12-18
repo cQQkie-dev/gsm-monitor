@@ -40,8 +40,8 @@ RUN git clone https://github.com/bkerler/gr-gsm.git \
     && cd ../.. \
     && rm -rf gr-gsm
 
-COPY grgsm_collection_monitor /collector.sh
-RUN chmod +x /collector.sh
+COPY gsm-monitor /gsm-monitor
+RUN chmod +x /gsm-monitor
 RUN mkdir /output
 #RUN apt update && apt install nano
-ENTRYPOINT ["/collector.sh"]
+ENTRYPOINT ["/gsm-monitor"]
