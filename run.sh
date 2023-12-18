@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu
+
 # runs the docker container with the correct parameters
 # check if parameters are provided
 if [ $# -eq 0 ]; then
