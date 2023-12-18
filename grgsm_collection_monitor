@@ -16,10 +16,13 @@ fi
 FREQUENCY=$1
 
 # Kill whole process group on exit
+# Disable shellcheck warning because we want the $$ to be expanded now
+# shellcheck disable=SC2064
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
 start_tshark() {
   # Use a timestamp for the filename
+  local timestamp
   timestamp=$(date +%s)
 
   # Start capture and parallely run grgsm_livemon
@@ -37,31 +40,37 @@ start_grgsm_livemon(){
 # if not then restart grgsm_livemon and tshark
 # if both are running then check if tshark is receiving packets
 watchdog() {
-    # check if grgsm_livemon is running
-    if ! pgrep -f "grgsm_livemon" > /dev/null; then
-        echo "Restarting grgsm_livemon"
-        start_grgsm_livemon
-        # Ramp up time for grgsm_livemon before starting tshark and checking for packets
-        sleep 10
-    fi
-
     # check if tshark is running
     if ! pgrep "tshark" > /dev/null; then
         echo "Restarting tshark"
         start_tshark
     fi
 
-    # if both running then run tshark on loopback interface for 10 seconds and count number of packets received
-    tshark -i lo -f udp -a duration:10 -w /tmp/tshark.pcap &> /dev/null &
+    # check if grgsm_livemon is running
+    if ! pgrep -f "grgsm_livemon" > /dev/null; then
+        echo "Restarting grgsm_livemon"
+        start_grgsm_livemon
+        # The check below, which would restart grgsm_livemon if no packets are
+        # received, is not needed if we already restart grgsm_livemon here.
+        return
+    fi
+
+    # run tshark on loopback interface for 30 seconds and count number of packets received
+    local tshark_pid
+    tshark -i lo -f udp -a duration:30 -w /tmp/tshark.pcap &> /dev/null &
     tshark_pid=$!
-    sleep 30
-    kill $tshark_pid || true
+    sleep 35
+    # send sigkill to tshark process if it is still running (the || true is
+    # needed because kill returns a non-zero exit code if the process is not
+    # running and set -e would cause the script to exit)
+    kill -9 $tshark_pid || true
 
     # count number of packets received
+    local num_packets
     num_packets=$(tshark -r /tmp/tshark.pcap | wc -l)
 
-    # if number of received packets is smaller then 100, then exit with code 1
-    if [ $num_packets -lt 100 ]; then
+    # if number of received packets is smaller than 100, then exit with code 1
+    if [ "$num_packets" -lt 100 ]; then
         echo "Number of packets received: $num_packets is less than expected"
         echo "Restarting grgsm_collector"
         # end grgsm_collector process
@@ -91,8 +100,7 @@ start_tshark
 start_grgsm_livemon
 
 # While loop to run watchdog function every 5 minutes
-while true
-do
+while true; do
     sleep 300
     watchdog
 done
