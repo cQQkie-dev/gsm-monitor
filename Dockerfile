@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 # Install dependencies non-interactively
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     python3 \
     python3-docutils \
@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     libosmocore-dev \
     gr-osmosdr \
     # Required to clone gr-gsm
+    ca-certificates \
     git \
     && rm -rf /var/lib/apt/lists/*
 
