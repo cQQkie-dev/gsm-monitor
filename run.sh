@@ -10,9 +10,16 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
+# Use sudo if docker is not available to the current user
+if ! docker info > /dev/null 2>&1; then
+    DOCKER="sudo docker"
+else
+    DOCKER="docker"
+fi
+
 # build the docker image from the Dockerfile
-docker build -t gsm-scanner .
+$DOCKER build -t gsm-scanner .
 
 # run the docker image with the correct parameters and remove the container after it is done
 # mount directory for output files
-docker run -it --privileged -e "TZ=Europe/Berlin" -v /dev/bus/usb:/dev/bus/usb -v $(pwd)/output:/app/output gsm-scanner "$@"
+$DOCKER run -it --privileged -e "TZ=Europe/Berlin" -v /dev/bus/usb:/dev/bus/usb -v "$(pwd)/output:/app/output" gsm-scanner "$@"
