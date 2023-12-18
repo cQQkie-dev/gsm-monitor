@@ -42,5 +42,6 @@ RUN git clone https://github.com/bkerler/gr-gsm.git \
 
 COPY grgsm_collection_monitor /collector.sh
 RUN chmod +x /collector.sh
+RUN mkdir /output
 #RUN apt update && apt install nano
 ENTRYPOINT ["/collector.sh"]
