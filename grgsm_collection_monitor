@@ -5,58 +5,51 @@ set -u
 
 # Set debug mode
 set -xv
+
 # read frequency from command line
 # if no frequency is provided, then exit with code 1
 if [ $# -eq 0 ]; then
-    echo "No arguments provided"
+    echo "usage: $0 <frequency>"
     exit 1
 fi
+
+FREQUENCY=$1
 
 # Kill whole process group on exit
 trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
 
-# check if grgsm_collector is running
-# if not, then restart it
-# if yes, then check if it is receiving packets
-# if not, then restart it
-# if yes, then exit with code 0
-# define function grgsm_collector
-grgsm_collector(){
-  # checks if grgsm_livemon and tshark exist on the system moved to main script
+start_tshark() {
   # Use a timestamp for the filename
   timestamp=$(date +%s)
 
-  # If installed, then start capture and parallely run grgsm_livemon
-  tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' -T fields -e frame.number -e frame.time -e \
-  gsm_a.rr.algorithm_identifier -E header=y -E separator=, -E quote=d -E occurrence=f > /app/output/tshark_"$timestamp"_test.csv &
-
-  grgsm_livemon_headless -f $1 -g 40 > /dev/null
+  # Start capture and parallely run grgsm_livemon
+  tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' \
+    -T fields -e frame.number -e frame.time -e gsm_a.rr.algorithm_identifier \
+    -E header=y -E separator=, -E quote=d -E occurrence=f \
+    > /app/output/tshark_"$timestamp"_test.csv &
 }
 
-# define function watchdog
+start_grgsm_livemon(){
+  grgsm_livemon_headless -f "$FREQUENCY" -g 40 > /dev/null &
+}
+
+# watchdog function to check if grgsm_livemon and tshark are running
+# if not then restart grgsm_livemon and tshark
+# if both are running then check if tshark is receiving packets
 watchdog() {
     # check if grgsm_livemon is running
-    if ! pgrep -f "grgsm_livemon" > /dev/null
-    then
+    if ! pgrep -f "grgsm_livemon" > /dev/null; then
         echo "Restarting grgsm_livemon"
-        # call grgsm_livemon function
-        grgsm_livemon_headless -f $1 -g 40 > /dev/null
+        start_grgsm_livemon
         # Ramp up time for grgsm_livemon before starting tshark and checking for packets
         sleep 10
     fi
 
     # check if tshark is running
-    if ! pgrep "tshark" > /dev/null
-    then
+    if ! pgrep "tshark" > /dev/null; then
         echo "Restarting tshark"
-        # create new timestamp
-        timestamp=$(date +%s)
-        # call tshark with appropriate parameters
-        tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' -T fields -e frame.number -e frame.time -e \
-        gsm_a.rr.algorithm_identifier -E header=y -E separator=, -E quote=d -E occurrence=f > /app/output/tshark_"$timestamp"_test.csv &
-
+        start_tshark
     fi
-
 
     # if both running then run tshark on loopback interface for 10 seconds and count number of packets received
     tshark -i lo -f udp -a duration:10 -w /tmp/tshark.pcap &> /dev/null &
@@ -75,7 +68,8 @@ watchdog() {
         pkill grgsm_livemon
         pkill tshark
         # call grgsm_collector function
-        grgsm_collector $1
+        start_tshark
+        start_grgsm_livemon
     fi
 
     # else exit with code 0
@@ -93,13 +87,12 @@ if ! [ -x "$(command -v tshark)" ]; then
   exit 1
 fi
 
-
-# call grgsm_collector function
-grgsm_collector $1 &
+start_tshark
+start_grgsm_livemon
 
 # While loop to run watchdog function every 5 minutes
 while true
 do
     sleep 300
-    watchdog $1
+    watchdog
 done
