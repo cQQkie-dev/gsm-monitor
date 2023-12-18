@@ -1,4 +1,8 @@
 #!/bin/bash
+
+set -e
+set -u
+
 # Set debug mode
 set -xv
 # read frequency from command line
@@ -58,7 +62,7 @@ watchdog() {
     tshark -i lo -f udp -a duration:10 -w /tmp/tshark.pcap &> /dev/null &
     tshark_pid=$!
     sleep 30
-    kill $tshark_pid
+    kill $tshark_pid || true
 
     # count number of packets received
     num_packets=$(tshark -r /tmp/tshark.pcap | wc -l)
