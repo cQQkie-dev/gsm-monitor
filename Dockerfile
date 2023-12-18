@@ -26,6 +26,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Required to clone gr-gsm
     ca-certificates \
     git \
+    # Required to use the host timezone in the container
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone gr-gsm \

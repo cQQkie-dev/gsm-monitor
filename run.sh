@@ -22,4 +22,9 @@ $DOCKER build -t gsm-monitor .
 
 # run the docker image with the correct parameters and remove the container after it is done
 # mount directory for output files
-$DOCKER run -it --privileged -e "TZ=Europe/Berlin" -v /dev/bus/usb:/dev/bus/usb -v "$(pwd)/output:/output" gsm-monitor "$@"
+$DOCKER run -it --privileged \
+  -v /etc/timezone:/etc/timezone:ro \
+  -v /etc/localtime:/etc/localtime:ro \
+  -v /dev/bus/usb:/dev/bus/usb \
+  -v "$(pwd)/output:/output" \
+  gsm-monitor "$@"
