@@ -23,3 +23,8 @@ but could be rewritten to use any wireshark / tshark filter
 * Dockerfile: work in progress to make testing mobile, base ubuntu image plus added tshark and gr-gsm, start with 
 docker run --it -v /dev/bus/usb:/dev/bus/usb and -v local/path/to/data:/tmp/ 
 * Now can be run with the run.sh script which builds the docker image and runs the container. Frequency needs to be set in the script.
+    Example: ./run.sh 934.6M
+* Frequency can be found either by:
+  1. Switching to 2G on your phone and looking at the frequency in the network settings (e.g by using USSD code *#0011#)
+  2. Using a tool like [kalibrate-rtl](https://github.com/steve-m/kalibrate-rtl) to find the strongest signal in your area
+  3. Using online maps like [cellmapper](https://www.cellmapper.net/map) to find the strongest signal in your area
