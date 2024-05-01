@@ -1,0 +1,11 @@
+[Unit]
+Description=GSM Monitoring in Docker Container
+Documentation=https://git.inf.h-brs.de/mkoch12s/gsm-monitor/-/blob/main/README.md
+Requires=docker.service
+After=docker.service
+
+[Service]
+ExecStart=/usr/bin/docker run --privileged -v /etc/timezone:/etc/timezone:ro -v /etc/localtime:/etc/loc>
+
+[Install]
+WantedBy=multi-user.target
