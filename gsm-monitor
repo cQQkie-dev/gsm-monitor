@@ -39,12 +39,19 @@ fi
 # by the BTS on the strongest frequency
 # Use grgsm_livemon to capture the SI3 message and tshark to extract the LAI from the SI3 message
 grgsm_livemon_headless -f "$FREQUENCY" -g 40 > /dev/null &
-lai=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
--T fields -E separator=_ -e e212.lai.mcc -e e212.lai.mnc -e gsm_a.lac)
-lai=$(echo "$lai" | head -1)
+# while lai is empty, keep running tshark to capture the SI3 message
+# define variable lai to store the LAI
+lai=""
+while [ -z "$lai" ]; do
+  lai=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
+  -T fields -E separator=_ -e e212.lai.mcc -e e212.lai.mnc -e gsm_a.lac)
+  lai=$(echo "$lai" | head -1)
+done
 # correctly shutdown tshark
 pkill -9 tshark || true
 pkill -9 grgsm_livemon  || true
+
+
 
 # trap to kill all background processes when the script exits, 
 # https://mywiki.wooledge.org/SignalTrap#Special_Note_On_SIGINT_and_SIGQUIT
