@@ -34,6 +34,18 @@ if [ -z "$FREQUENCY" ]; then
   find_strongest_frequency
 fi
 
+# find LAI (= MCC + MNC + LAC) of the strongest frequency for naming the output file
+# for that we need to record the first System Information message 3 (SI3) that is broadcasted 
+# by the BTS on the strongest frequency
+# Use grgsm_livemon to capture the SI3 message and tshark to extract the LAI from the SI3 message
+grgsm_livemon_headless -f "$FREQUENCY" -g 40 > /dev/null &
+lai=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
+-T fields -E separator=_ -e e212.lai.mcc -e e212.lai.mnc -e gsm_a.lac)
+lai=$(echo "$lai" | head -1)
+# correctly shutdown tshark
+pkill -9 tshark || true
+pkill -9 grgsm_livemon  || true
+
 # trap to kill all background processes when the script exits, 
 # https://mywiki.wooledge.org/SignalTrap#Special_Note_On_SIGINT_and_SIGQUIT
 # https://stackoverflow.com/questions/360201/how-do-i-kill-background-processes-jobs-when-my-shell-script-exits
@@ -44,12 +56,12 @@ start_tshark() {
   # Use a timestamp for the filename
   local timestamp
   timestamp=$(date +%s)
-
+  
   # Start capture and parallely run grgsm_livemon
   tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' \
     -T fields -e frame.number -e frame.time -e gsm_a.rr.algorithm_identifier \
     -E header=y -E separator=, -E quote=d -E occurrence=f \
-    > $(pwd)/output/tshark_"$timestamp"_test.csv &
+    > $(pwd)/output/tshark_"$lai"_"$timestamp"_test.csv &
 }
 
 start_grgsm_livemon(){
