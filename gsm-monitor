@@ -6,19 +6,39 @@ set -u
 # Set debug mode
 set -xv
 
-# read frequency from command line
-# if no frequency is provided, then exit with code 1
-if [ $# -eq 0 ]; then
-    echo "usage: $0 <frequency>"
-    exit 1
+# Try to read freqency from the first argument, if not provided then find the strongest frequency
+# in the area and set it as the frequency
+FREQUENCY=${1:-}
+
+if [ -z "$FREQUENCY" ]; then
+  echo "Frequency not provided, finding the strongest frequency in the area"#
 fi
 
-FREQUENCY=$1
+# function to automatically find the strongest frequency in the area with kalibrate-rtl
+# and set the frequency to the strongest frequency
+find_strongest_frequency() {
+  local max_power
+  local strongest_frequency
+  local kalibrate_output
+  kalibrate_output=$(kal -s EGSM 2>&1)
+  max_power=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | sort -g -r | head -1)
+  strongest_frequency=$(echo "$kalibrate_output" | grep "$max_power" | awk '{print $3}' | cut -d "(" -f 2 | head -1 | cut -d "H" -f 1)
+  FREQUENCY=$strongest_frequency
+  echo "Strongest frequency in the area is $FREQUENCY"
+}
+
+
+# Set the frequency to the strongest frequency in the area
+# if the frequency is not provided as an argument
+if [ -z "$FREQUENCY" ]; then
+  find_strongest_frequency
+fi
 
 # trap to kill all background processes when the script exits, 
 # https://mywiki.wooledge.org/SignalTrap#Special_Note_On_SIGINT_and_SIGQUIT
 # https://stackoverflow.com/questions/360201/how-do-i-kill-background-processes-jobs-when-my-shell-script-exits
 trap 'kill $(jobs -p)' EXIT
+
 
 start_tshark() {
   # Use a timestamp for the filename
@@ -29,7 +49,7 @@ start_tshark() {
   tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' \
     -T fields -e frame.number -e frame.time -e gsm_a.rr.algorithm_identifier \
     -E header=y -E separator=, -E quote=d -E occurrence=f \
-    > /output/tshark_"$timestamp"_test.csv &
+    > $(pwd)/output/tshark_"$timestamp"_test.csv &
 }
 
 start_grgsm_livemon(){
@@ -93,6 +113,13 @@ fi
 # Check if tshark is installed
 if ! [ -x "$(command -v tshark)" ]; then
   echo 'Error: tshark is not installed.' >&2
+  exit 1
+fi
+
+
+# Check if kalibrate-rtl is installed
+if ! [ -x "$(command -v kal)" ]; then
+  echo 'Error: kalibrate-rtl is not installed.' >&2
   exit 1
 fi
 
