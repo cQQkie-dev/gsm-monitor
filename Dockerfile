@@ -49,6 +49,19 @@ RUN git clone https://github.com/bkerler/gr-gsm.git \
     && cd ../.. \
     && rm -rf gr-gsm
 
+# Clone kalibrate-rtl
+RUN git clone https://github.com/steve-m/kalibrate-rtl.git
+
+# Run the build commands
+RUN cd kalibrate-rtl \
+    &&./bootstrap \
+    && CXXFLAGS='-W -Wall -O3' ./configure \
+    && make
+
+# Add kalibrate-rtl/src to the PATH, so that the binary can be run from anywhere
+# and be called by "kal <args>"
+ENV PATH="/kalibrate-rtl/src:${PATH}"
+
 COPY gsm-monitor /gsm-monitor
 RUN chmod +x /gsm-monitor
 RUN mkdir /output
