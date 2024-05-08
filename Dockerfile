@@ -26,6 +26,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Required to clone gr-gsm
     ca-certificates \
     git \
+    # Dependencies for kalibrate-rtl from https://github.com/steve-m/kalibrate-rtl
+    libfftw3-dev \
+    automake \
+    g++ \
+    librtlsdr0\
+    librtlsdr-dev \
     # Required to use the host timezone in the container
     tzdata \
     && rm -rf /var/lib/apt/lists/*
