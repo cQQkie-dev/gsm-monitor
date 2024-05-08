@@ -9,7 +9,7 @@ ExecStart=/usr/bin/docker run --privileged \
 -v /etc/timezone:/etc/timezone:ro \
 -v /etc/localtime:/etc/localtime:ro \
 -v /dev/bus/usb:/dev/bus/usb \
--v "/home/gsm-raspi/output:/output" gsm-monitor 924.2M
+-v "/home/gsm-raspi/output:/output" gsm-monitor
 
 [Install]
 WantedBy=multi-user.target
