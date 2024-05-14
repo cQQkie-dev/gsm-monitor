@@ -6,16 +6,8 @@ set -u
 # Set debug mode
 set -xv
 
-# Try to read freqency from the first argument, if not provided then find the strongest frequency
-# in the area and set it as the frequency
-FREQUENCY=${1:-}
-
-if [ -z "$FREQUENCY" ]; then
-  echo "Frequency not provided, finding the strongest frequency in the area"#
-fi
-
-# function to automatically find the strongest frequency in the area with kalibrate-rtl
-# and set the frequency to the strongest frequency
+# function to automatically find the strongest downlink frequency in the 
+# area with kalibrate-rtl and set the frequency to the strongest signal
 find_strongest_frequency() {
   local max_power
   local strongest_frequency
@@ -27,30 +19,24 @@ find_strongest_frequency() {
   echo "Strongest frequency in the area is $FREQUENCY"
 }
 
-
-# Set the frequency to the strongest frequency in the area
-# if the frequency is not provided as an argument
-if [ -z "$FREQUENCY" ]; then
-  find_strongest_frequency
-fi
-
-# find LAI (= MCC + MNC + LAC) of the strongest frequency for naming the output file
-# for that we need to record the first System Information message 3 (SI3) that is broadcasted 
+# Find LAI (= MCC + MNC + LAC) of the strongest frequency for naming the output file
+# For that we need to record the first System Information message 3 (SI3) that is broadcasted 
 # by the BTS on the strongest frequency
 # Use grgsm_livemon to capture the SI3 message and tshark to extract the LAI from the SI3 message
-grgsm_livemon_headless -f "$FREQUENCY" -g 40 > /dev/null &
-# while lai is empty, keep running tshark to capture the SI3 message
-# define variable lai to store the LAI
-lai=""
-while [ -z "$lai" ]; do
-  lai=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
-  -T fields -E separator=_ -e e212.lai.mcc -e e212.lai.mnc -e gsm_a.lac)
-  lai=$(echo "$lai" | head -1)
-done
-# correctly shutdown tshark
-pkill -9 tshark || true
-pkill -9 grgsm_livemon  || true
-
+find_lai() {
+  grgsm_livemon_headless -f "$FREQUENCY" -g 40 > /dev/null &
+  # while lai is empty, keep running tshark to capture the SI3 message
+  # define variable lai to store the LAI
+  lai=""
+  while [ -z "$lai" ]; do
+    lai=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
+    -T fields -E separator=_ -e e212.lai.mcc -e e212.lai.mnc -e gsm_a.lac)
+    lai=$(echo "$lai" | head -1)
+  done
+  # correctly shutdown tshark and grgsm_livemon
+  pkill -9 tshark || true
+  pkill -9 grgsm_livemon  || true
+}
 
 
 # trap to kill all background processes when the script exits, 
@@ -123,6 +109,9 @@ watchdog() {
     # else exit with code 0
     #exit 0
 }
+
+
+
 # Check if grgsm_livemon is installed
 if ! [ -x "$(command -v grgsm_livemon_headless)" ]; then
   echo 'Error: grgsm_livemon is not installed.' >&2
@@ -135,12 +124,31 @@ if ! [ -x "$(command -v tshark)" ]; then
   exit 1
 fi
 
-
 # Check if kalibrate-rtl is installed
 if ! [ -x "$(command -v kal)" ]; then
   echo 'Error: kalibrate-rtl is not installed.' >&2
+  echo 'Please install kalibrate-rtl from https://github.com/steve-m/kalibrate-rtl'
+  echo 'Add the kalibrate-rtl binary to your PATH by running the following command:'
+  echo 'export PATH=$PATH:/path/to/repository/kalibrate-rtl/src/'
+  echo 'or adding the path to kalibrate-rtl to your PATH in your .bashrc or .bash_profile'
   exit 1
 fi
+
+# Try to read freqency from the first argument, if not provided then find the 
+# strongest frequency in the area and set it as the frequency
+FREQUENCY=${1:-}
+if [ -z "$FREQUENCY" ]; then
+  echo "Frequency not provided, finding the strongest frequency in the area"
+fi
+
+# Set the frequency to the strongest frequency in the area
+# if the frequency is not provided as an argument
+if [ -z "$FREQUENCY" ]; then
+  find_strongest_frequency
+fi
+
+# Find LAI of the strongest frequency to name the output file
+find_lai
 
 start_tshark
 start_grgsm_livemon
