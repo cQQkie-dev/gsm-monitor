@@ -64,8 +64,8 @@ for frequency *933.4 MHz* ~ *E/U/ARFCN 1016*, i.e. **gsm-monitor** follows the n
 To find the correct frequency for your use case, there are several possibilities:
 
 1. Switching to 2G on your phone and looking at the frequency in the network settings:
-    * Android: ***Settings***$\rightarrow$ ***Connections*** $\rightarrow$ ***Mobile networks*** $\rightarrow$ ***Choose your SIM card and switch to only 2G*** (potentially unsafe)
-    * either use a network monitoring app or use **USSD** code **#0011#*
+    * Android: ***Settings*** $\rightarrow$ ***Connections*** $\rightarrow$ ***Mobile networks*** $\rightarrow$ ***Choose your SIM card and switch to only 2G*** (potentially unsafe)
+    * either use a network monitoring app or use **USSD** code **\#0011#*
     * if you used the USSD code, you'll find the ARFCN under ***BCCH arfcn***
     * **ARFCN** stands for [*absolute radio frequency channel number*](https://en.wikipedia.org/wiki/Absolute_radio-frequency_channel_number) and translates to a frequency in the 2G network
     * you can use a tool like [cellmapper's frequency calculator](https://www.cellmapper.net/arfcn) to translate the **ARFCN** to an actual frequency
