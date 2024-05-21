@@ -2,7 +2,7 @@
 =============================
 The goal of this project is to anonymously gather data on how often either **A5/1** or **A5/3** algorithms are still used in 2G networks.\
 The heavy lifting is done by the **gr-gsm** software suite, especially *grgsm_livemon / grgsm_livemon_headles*s, by [ptrkrysik](https://github.com/ptrkrysik/gr-gsm). \
-For the data collection process any SDR can be used, that is supported by grgsm_livemon and can receive the edaquate frequencies. \
+For the data collection process any SDR can be used, that is supported by grgsm_livemon and can receive the adequate frequencies. \
 For example, I used an RTL-SDR for GSM900 - as it is one of the cheapest and most plug-and-play options.  
 
 ## Installation, Setup
@@ -24,6 +24,8 @@ Please see project's [wiki](https://osmocom.org/projects/gr-gsm/wiki/index) for 
 ## Components
 
 * ***gsm-monitor:*** 
+  * NEW: now can be run without prefixed frequency, instead searches for the strongest frequency in the area via kalibrate-rtl
+  * labels capture files with frequency, provider and timestamp
   * does the recording with **gr-gsm** and **tshark**
   * filters for package details, here the used encryption algorithms
   * could be rewritten to use any **wireshark / tshark** filter. 
@@ -33,6 +35,11 @@ Please see project's [wiki](https://osmocom.org/projects/gr-gsm/wiki/index) for 
   * builds the **Docker Image** on top of an **ubuntu22.04** base image and uses more recent versions of **gnuradio** as well as [bkerler's fork](https://github.com/bkerler/gr-gsm) of **gr-gsm**
   * creates an output directory for **gsm-monitor**
   * *ENTRYPOINT* is **gsm-monitor**
+
+* ***gsm-monitor.service***:
+  * a systemd service configuration file
+  * enables autostart of monitoring for e.g. Raspberry Pi on startup
+  * enables pluck-and-play monitoring on Raspberry Pis
 
 * ***run.sh:***
   * needs a frequency as input
@@ -57,7 +64,7 @@ To find the correct frequency for your use case, there are several possibilities
 
 1. Switching to 2G on your phone and looking at the frequency in the network settings:
     * Android: ***Settings***$\rightarrow$ ***Connections*** $\rightarrow$ ***Mobile networks*** $\rightarrow$ ***Choose your SIM card and switch to only 2G*** (potentially unsafe)
-    * either use a network monitoring app or use **USSD** code ****#0011#***
+    * either use a network monitoring app or use **USSD** code ***#0011#**
     * if you used the USSD code, you'll find the ARFCN under ***BCCH arfcn***
     * **ARFCN** stands for [*absolute radio frequency channel number*](https://en.wikipedia.org/wiki/Absolute_radio-frequency_channel_number) and translates to a frequency in the 2G network
     * you can use a tool like [cellmapper's frequency calculator](https://www.cellmapper.net/arfcn) to translate the **ARFCN** to an actual frequency
@@ -82,3 +89,19 @@ Example usage:
 >                           ./run.sh 933.4M
 
 This might be useful if you already settled on the frequency you want to monitor. For example, the docker image could be build on a **Rasperry Pi** or similiar single-board computers connected to an SDR and deployed to monitor a fixed frequency over extended periods of time.
+
+## Setup on Raspberry Pi
+
+Clone this repo on your Raspberry Pi or pull the docker image and run inside the container there. Runs smoothly on Raspi4's, but has trouble running on Raspi2's.
+To have the monitoring run automatically on start-up, have a look at the gsm-monitor.service file. This helps you to register a systemd service in the following way:
+
+1. Config files for systemd services are usually saved at /etc/systemd/system/<service_name.service>. So we can create a symbolic link to our config file, e.g. like
+>                           ln -s /home/$USER/gsm-monitor/gsm-monitor.service /etc/systemd/system/gsm-monitor.service
+
+2. Tell systemd to start the service automatically at boot:
+>                           sudo systemctl enable gsm-monitor.service
+
+3. To test you can run:
+>                           sudo systemctl start gsm-monitor.service
+and
+>                           sudo systemctl status gsm-monitor.service
