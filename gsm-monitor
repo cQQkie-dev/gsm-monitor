@@ -30,7 +30,7 @@ find_lai() {
   lai=""
   while [ -z "$lai" ]; do
     lai=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
-    -T fields -E separator=_ -e e212.lai.mcc -e e212.lai.mnc -e gsm_a.lac)
+    -T fields -E separator=_ -e e212.lai.mcc -e e212.lai.mnc -e gsm_a.lac -e gsm_a.bssmap.cell_ci)
     lai=$(echo "$lai" | head -1)
   done
   # correctly shutdown tshark and grgsm_livemon
