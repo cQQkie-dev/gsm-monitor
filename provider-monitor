@@ -1,0 +1,206 @@
+#!/bin/bash
+
+set -e
+set -u
+
+# Set debug mode
+set -xv
+
+# function to automatically find the strongest downlink frequency in the 
+# area with kalibrate-rtl and set the frequency to the strongest signal
+# find_strongest_frequency() {
+#   local max_power
+#   local strongest_frequency
+#   local kalibrate_output
+#   kalibrate_output=$(kal -s EGSM 2>&1)
+#   max_power=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | sort -g -r | head -1)
+#   strongest_frequency=$(echo "$kalibrate_output" | grep "$max_power" | awk '{print $3}' | cut -d "(" -f 2 | head -1 | cut -d "H" -f 1)
+#   FREQUENCY=$strongest_frequency
+#   echo "Strongest frequency in the area is $FREQUENCY"
+#   # write output of kalibrate-rtl to a file
+#   echo "$kalibrate_output" > $(pwd)/output/kalibrate_output.txt
+# }
+
+# iterate over frequencies until we find the provider 
+find_strongest_frequency_provider(){
+    local output
+    local kalibrate_output
+    local provider_no
+    provider_no=""
+    kalibrate_output=$(kal -s EGSM 2>&1)
+    sorted_signals=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | sort -g -r)
+    readarray -t values <<< "$sorted_signals"
+    for value in "${values[@]}"; do
+        # set current provider back to empty string, otherwise it will keep the value from the previous iteration
+        provider_no=""
+        # set current frequency to the frequency of the current signal value
+        current_frequency=$(echo "$kalibrate_output" | grep "${value}" | awk '{print $3}' | cut -d "(" -f 2 | head -1 | cut -d "H" -f 1)
+        grgsm_livemon_headless -f "${current_frequency}" -g 40 > /dev/null &
+        while [ -z "$provider_no" ]; do
+            provider_no=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
+            -T fields -e e212.lai.mnc)
+            provider_no=$(echo "$provider_no" | head -1)
+        done
+        pkill -9 tshark || true
+        pkill -9 grgsm_livemon  || true
+        if [ "${provider_no}" -eq "${PROVIDER}" ]; then
+            FREQUENCY="${current_frequency}"
+            echo "Strongest frequency in the area for provider $PROVIDER is $FREQUENCY"
+            break 
+        fi
+    done
+}
+
+# Find LAI (= MCC + MNC + LAC) of the strongest frequency for naming the output file
+# For that we need to record the first System Information message 3 (SI3) that is broadcasted 
+# by the BTS on the strongest frequency
+# Use grgsm_livemon to capture the SI3 message and tshark to extract the LAI from the SI3 message
+find_lai() {
+  grgsm_livemon_headless -f "$FREQUENCY" -g 40 > /dev/null &
+  # while lai is empty, keep running tshark to capture the SI3 message
+  # define variable lai to store the LAI
+  lai=""
+  while [ -z "$lai" ]; do
+    lai=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
+    -T fields -E separator=_ -e e212.lai.mcc -e e212.lai.mnc -e gsm_a.lac -e gsm_a.bssmap.cell_ci)
+    lai=$(echo "$lai" | head -1)
+  done
+  # correctly shutdown tshark and grgsm_livemon
+  pkill -9 tshark || true
+  pkill -9 grgsm_livemon  || true
+}
+
+
+# trap to kill all background processes when the script exits, 
+# https://mywiki.wooledge.org/SignalTrap#Special_Note_On_SIGINT_and_SIGQUIT
+# https://stackoverflow.com/questions/360201/how-do-i-kill-background-processes-jobs-when-my-shell-script-exits
+trap 'kill $(jobs -p)' EXIT
+
+
+start_tshark() {
+  # Use a timestamp for the filename
+  local timestamp
+  timestamp=$(date +%s)
+  
+  # Start capture and parallely run grgsm_livemon
+  tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' \
+    -T fields -e frame.number -e frame.time -e gsm_a.rr.algorithm_identifier \
+    -E header=y -E separator=, -E quote=d -E occurrence=f \
+    > $(pwd)/output/tshark_"$FREQUENCY"_"$lai"_"$timestamp".csv &
+}
+
+start_grgsm_livemon(){
+  grgsm_livemon_headless -f "$FREQUENCY" -g 40 > /dev/null &
+}
+
+# watchdog function to check if grgsm_livemon and tshark are running
+# if not then restart grgsm_livemon and tshark
+# if both are running then check if tshark is receiving packets
+watchdog() {
+    # check if tshark is running
+    if ! pgrep "tshark" > /dev/null; then
+        echo "Restarting tshark"
+        start_tshark
+    fi
+
+    # check if grgsm_livemon is running
+    if ! pgrep -f "grgsm_livemon" > /dev/null; then
+        echo "Restarting grgsm_livemon"
+        start_grgsm_livemon
+        # The check below, which would restart grgsm_livemon if no packets are
+        # received, is not needed if we already restart grgsm_livemon here.
+        return
+    fi
+
+    # run tshark on loopback interface for 30 seconds and count number of packets received
+    local tshark_pid
+    tshark -i lo -f udp -a duration:30 -w /tmp/tshark.pcap &> /dev/null &
+    tshark_pid=$!
+    sleep 35
+    # send sigkill to tshark process if it is still running (the || true is
+    # needed because kill returns a non-zero exit code if the process is not
+    # running and set -e would cause the script to exit)
+    kill -9 $tshark_pid || true
+
+    # count number of packets received
+    local num_packets
+    num_packets=$(tshark -r /tmp/tshark.pcap | wc -l)
+
+    # if number of received packets is smaller than 100, then exit with code 1
+    if [ "$num_packets" -lt 100 ]; then
+        echo "Number of packets received: $num_packets is less than expected"
+        echo "Restarting grgsm_collector"
+        # end grgsm_collector process
+        pkill grgsm_livemon
+        pkill tshark
+        # call grgsm_collector function
+        start_tshark
+        start_grgsm_livemon
+    fi
+
+    # else exit with code 0
+    #exit 0
+}
+
+
+
+# Check if grgsm_livemon is installed
+if ! [ -x "$(command -v grgsm_livemon_headless)" ]; then
+  echo 'Error: grgsm_livemon is not installed.' >&2
+  exit 1
+fi
+
+# Check if tshark is installed
+if ! [ -x "$(command -v tshark)" ]; then
+  echo 'Error: tshark is not installed.' >&2
+  exit 1
+fi
+
+# Check if kalibrate-rtl is installed
+if ! [ -x "$(command -v kal)" ]; then
+  echo 'Error: kalibrate-rtl is not installed.' >&2
+  echo 'Please install kalibrate-rtl from https://github.com/steve-m/kalibrate-rtl'
+  echo 'Add the kalibrate-rtl binary to your PATH by running the following command:'
+  echo 'export PATH=$PATH:/path/to/repository/kalibrate-rtl/src/'
+  echo 'or adding the path to kalibrate-rtl to your PATH in your .bashrc or .bash_profile'
+  exit 1
+fi
+
+# Try to read freqency from the first argument, if not provided then find the 
+# strongest frequency in the area and set it as the frequency
+# FREQUENCY=${1:-}
+# if [ -z "$FREQUENCY" ]; then
+#   echo "Frequency not provided, finding the strongest frequency in the area"
+# fi
+
+# Set the frequency to the strongest frequency in the area
+# if the frequency is not provided as an argument
+# if [ -z "$FREQUENCY" ]; then
+#   find_strongest_frequency
+# fi
+
+# finding the strongest frequency in the area depending on the provider
+# the provider is given as only argument as a integer
+PROVIDER=${1:-}
+if [ -z "$PROVIDER" ]; then
+  echo "Provider not provided, please provide the provider as an integer"
+  exit 1
+fi
+
+# Search for the strongest frequency for the provider
+find_strongest_frequency_provider
+
+# Find LAI of the strongest frequency to name the output file
+find_lai
+
+start_tshark
+start_grgsm_livemon
+
+# While loop to run watchdog function every 5 minutes
+while true; do
+    # Run sleep in background and wait in the foreground to be able to
+    # handle signals via the trap defined above.
+    sleep 300 &
+    wait $!
+    watchdog
+done
