@@ -109,7 +109,7 @@ if args.analyze:
     ## Split file ending from file name
     file = file.split(".")[0]
     # Clean up dataframe
-    df["frame.time"] = pd.to_datetime(df["frame.time"], format='%b %d, %Y %H:%M:%S.%f CET')
+    df["frame.time"] = pd.to_datetime(df["frame.time"], format='%b %d, %Y %H:%M:%S.%f CEST')
     # Rename columns
     df.rename(columns={"gsm_a.rr.algorithm_identifier": "algorithm", "frame.number": "frame_number",
                        "frame.time": "timestamp"}, inplace=True)
