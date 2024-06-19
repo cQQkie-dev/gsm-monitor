@@ -2,8 +2,11 @@
 =============================
 The goal of this project is to anonymously gather data on how often either **A5/1** or **A5/3** algorithms are still used in 2G networks.\
 The heavy lifting is done by the **gr-gsm** software suite, especially *grgsm_livemon / grgsm_livemon_headles*s, by [ptrkrysik](https://github.com/ptrkrysik/gr-gsm). \
-For the data collection process any SDR can be used, that is supported by grgsm_livemon and can receive the adequate frequencies. \
-For example, I used an RTL-SDR for GSM900 - as it is one of the cheapest and most plug-and-play options.  
+For the data collection process any SDR can be used, that is supported by *grgsm_livemon* and can receive the respective frequencies. \
+A cheap option is any variant of [**RTL-SDR**](https://www.rtl-sdr.com/about-rtl-sdr/),  based on DVB-T Tuner Dongles with the **RTL2832U** chipset.
+These usually cover the range between around ***500 kHz*** and ***1.75 GHz***, which is sufficient for all **(E-|R-)GSM-xxx** [frequency bands](https://en.wikipedia.org/wiki/GSM_frequency_bands), but not for **DCS-1800** or **PCS-1900** frequency bands. For these you could use one of Ettus Research's **USRPs**, a **HackRF One**, **BladeRF** or **LimeSDR**, but these tend to be notably more costly with the USRPs marking the high end. There are also some newer RTL-SDRs, that are still comparatively cheap, but claim to operate in the GHz range up until ***~2.3 GHz***.  
+
+For example, I mostly used an RTL-SDR for GSM900 - as it is one of the cheapest options and very close to "plug-and-play". 
 
 ## Installation, Setup
 
