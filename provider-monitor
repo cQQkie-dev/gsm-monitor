@@ -6,23 +6,8 @@ set -u
 # Set debug mode
 set -xv
 
-# function to automatically find the strongest downlink frequency in the 
-# area with kalibrate-rtl and set the frequency to the strongest signal
-# find_strongest_frequency() {
-#   local max_power
-#   local strongest_frequency
-#   local kalibrate_output
-#   kalibrate_output=$(kal -s EGSM 2>&1)
-#   max_power=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | sort -g -r | head -1)
-#   strongest_frequency=$(echo "$kalibrate_output" | grep "$max_power" | awk '{print $3}' | cut -d "(" -f 2 | head -1 | cut -d "H" -f 1)
-#   FREQUENCY=$strongest_frequency
-#   echo "Strongest frequency in the area is $FREQUENCY"
-#   # write output of kalibrate-rtl to a file
-#   echo "$kalibrate_output" > $(pwd)/output/kalibrate_output.txt
-# }
-
-# iterate over frequencies until we find the provider 
-find_strongest_frequency_provider(){
+# iterate over the strongest frequencies in the area until we find one for the chosen provider
+find_provider_strongest_frequency(){
     local output
     local kalibrate_output
     local provider_no
@@ -137,9 +122,6 @@ watchdog() {
         start_tshark
         start_grgsm_livemon
     fi
-
-    # else exit with code 0
-    #exit 0
 }
 
 
@@ -166,29 +148,19 @@ if ! [ -x "$(command -v kal)" ]; then
   exit 1
 fi
 
-# Try to read freqency from the first argument, if not provided then find the 
-# strongest frequency in the area and set it as the frequency
-# FREQUENCY=${1:-}
-# if [ -z "$FREQUENCY" ]; then
-#   echo "Frequency not provided, finding the strongest frequency in the area"
-# fi
-
-# Set the frequency to the strongest frequency in the area
-# if the frequency is not provided as an argument
-# if [ -z "$FREQUENCY" ]; then
-#   find_strongest_frequency
-# fi
-
 # finding the strongest frequency in the area depending on the provider
 # the provider is given as only argument as a integer
 PROVIDER=${1:-}
 if [ -z "$PROVIDER" ]; then
   echo "Provider not provided, please provide the provider as an integer"
+  echo "Usage: ./provider-monitor <provider>"
+  echo "Example: ./provider-monitor 1"
+  echo "German providers: 1 - Telekom, 2 - O2 , 3 - Vodafone"
   exit 1
 fi
 
 # Search for the strongest frequency for the provider
-find_strongest_frequency_provider
+find_provider_strongest_frequency
 
 # Find LAI of the strongest frequency to name the output file
 find_lai
