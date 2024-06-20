@@ -9,12 +9,14 @@ StartLimitIntervalSec=600
 StartLimitBurst=10
 
 [Service]
-# Depending on the provider, specify an argument for provider-monitor in Dockerfile.provider-monitor
+# Depending on the provider, specify an argument for provider-monitor
+# E.g: 1 - Telekom, 2 - O2 / Telefonica / E-Plus, 3 - Vodafone
+# Default = 1
 ExecStart=/usr/bin/docker run --privileged \
 -v /etc/timezone:/etc/timezone:ro \
 -v /etc/localtime:/etc/localtime:ro \
 -v /dev/bus/usb:/dev/bus/usb \
--v "/home/$USER/output:/output" gsm-monitor
+-v "/home/$USER/output_provider:/output" provider-monitor
 
 # If antenna is plugged or not connected, the service will not start correctly
 # Try to restart the service / container every 30 seconds 
