@@ -62,8 +62,46 @@ RUN cd kalibrate-rtl \
 # and be called by "kal <args>"
 ENV PATH="/kalibrate-rtl/src:${PATH}"
 
+# Copy the gsm-monitor binary to the container
 COPY gsm-monitor /gsm-monitor
 RUN chmod +x /gsm-monitor
 RUN mkdir /output
-#RUN apt update && apt install nano
+
 ENTRYPOINT ["/gsm-monitor"]
+
+## Clutter to think about later
+# ## Configure wireshark to allow non-root users to capture packets
+# #RUN apt-get install -y tshark
+# RUN groupadd -r user
+
+# # Check if the wireshark group exists, and if not, create it
+# RUN getent group wireshark || groupadd wireshark
+# RUN chsh -s /usr/sbin/nologin root
+# RUN useradd -m -g user -G wireshark user
+# # Add a new user and set to the wireshark group
+# RUN setcap 'CAP_NET_RAW+eip CAP_NET_ADMIN+eip' /usr/bin/dumpcap
+
+
+# # Install necessary packages
+# RUN apt-get update && apt-get install -y sudo
+
+# # Create a non-root user and set file permissions
+# RUN echo "user:user" | chpasswd && adduser user sudo
+
+# # Create required directories and set permissions
+# RUN mkdir -p /home/user/output && chown -R user:user /home/user/output
+
+# # Switch to non-root user
+# USER user
+
+# # Set the working directory
+# WORKDIR /home/user
+
+# # Copy the gsm-monitor application to the container
+# COPY --chown=user:user gsm-monitor /home/user/gsm-monitor
+
+# # Ensure the gsm-monitor is executable
+# RUN chmod +x /home/user/gsm-monitor
+
+# # Set the entrypoint to the gsm-monitor application
+# ENTRYPOINT ["/home/user/gsm-monitor"]
