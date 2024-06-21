@@ -18,6 +18,10 @@ find_strongest_frequency() {
   local strongest_frequency
   local kalibrate_output
   kalibrate_output=$(kal -s EGSM 2>&1)
+  # add check if kalibrate-rtl is not able to find any frequencies and rerun the command
+  while [ -z "$kalibrate_output" ]; do
+      kalibrate_output=$(kal -s EGSM 2>&1)
+  done
   max_power=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | sort -g -r | head -1)
   strongest_frequency=$(echo "$kalibrate_output" | grep "$max_power" | awk '{print $3}' | cut -d "(" -f 2 | head -1 | cut -d "H" -f 1)
   FREQUENCY=$strongest_frequency

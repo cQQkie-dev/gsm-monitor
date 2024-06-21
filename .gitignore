@@ -1,0 +1,6 @@
+/scratch
+/.idea
+/*.iml
+/output
+#.gitignore
+/output2
