@@ -14,16 +14,16 @@ trap 'kill $(jobs -p)' SIGINT SIGTERM EXIT
 
 # iterate over the strongest frequencies in the area until we find one for the chosen provider
 find_provider_strongest_frequency(){
-    local output
     local kalibrate_output
+    local sorted_signals 
     local provider_no
     provider_no=""
-    kalibrate_output=$(kal -s EGSM 2>&1)
+    sorted_signals=""
     # add check if kalibrate-rtl is not able to find any frequencies and rerun the command
-    while [ -z "$kalibrate_output" ]; do
+    while [ -z "$sorted_signals" ]; do
         kalibrate_output=$(kal -s EGSM 2>&1)
+        sorted_signals=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | sort -g -r)
     done
-    sorted_signals=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | sort -g -r)
     readarray -t values <<< "$sorted_signals"
     for value in "${values[@]}"; do
         # set current provider back to empty string, otherwise it will keep the value from the previous iteration
