@@ -12,7 +12,7 @@ if [ $# -eq 0 ]; then
 fi
 
 # Use sudo if docker is not available to the current user
-if ! docker info > /dev/null 2>&1; then
+if ! docker info >/dev/null 2>&1; then
     DOCKER="sudo docker"
 else
     DOCKER="docker"
@@ -26,8 +26,8 @@ $DOCKER build -t gsm-monitor .
 # mount directory for output files
 echo "Running docker image..."
 $DOCKER run -it --privileged \
-  -v /etc/timezone:/etc/timezone:ro \
-  -v /etc/localtime:/etc/localtime:ro \
-  -v /dev/bus/usb:/dev/bus/usb \
-  -v "/home/$USER/output:/output" \
-  gsm-monitor "$@"
+    -v /etc/timezone:/etc/timezone:ro \
+    -v /etc/localtime:/etc/localtime:ro \
+    -v /dev/bus/usb:/dev/bus/usb \
+    -v "/home/$USER/output:/output" \
+    gsm-monitor "$@"

@@ -35,7 +35,7 @@ def argument_parser():
         "-g", "--gain", dest="gain", help="Set gain [default=%(default)r]", default=30)
     parser.add_argument("-a", "--analyze", dest="analyze", type=bool, help="Analyze the output"
                                                                            " file [default=%(default)r]", default=False)
-    parser.add_argument("-iv", "--interval", dest="interval", type=int, help="Time interval in minutes to group by"                          
+    parser.add_argument("-iv", "--interval", dest="interval", type=int, help="Time interval in minutes to group by"
                                                                              " [default=%(default)r]", default=3)
     parser.add_argument("-i", "--input", dest="input", type=str, help='''Input file name to analyze, must be .csv
 or .json recorded with this script 
@@ -76,7 +76,7 @@ tshark_args_json = [
     ">", args.output  # Write to file
 ]
 logging_format = "%(asctime)s: %(message)s"
-#logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
+# logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
 
 if args.output and not args.input:
     logging.info(f"Writing to file at {os.getcwd()}/{args.output}")
@@ -124,15 +124,15 @@ if args.analyze:
     df_grouped = df.groupby(pd.Grouper(key='timestamp', freq=f'{args.interval}T')).sum().reset_index(drop=False, inplace=False)
     df_grouped.to_csv(f"{os.getcwd()}/interval_{file}.csv", index=False)
     logging.info("Done analyzing.")
-    #sns.lineplot(data=df)
+    # sns.lineplot(data=df)
     # show header of df_grouped
-    #print(df_grouped.head(5))
-    #melt_df = pd.melt(df_grouped, ['timestamp'])
-    #print(melt_df.head(5))
-    #print(melt_df.tail(5))
+    # print(df_grouped.head(5))
+    # melt_df = pd.melt(df_grouped, ['timestamp'])
+    # print(melt_df.head(5))
+    # print(melt_df.tail(5))
     # Plotting cumulative sum of A5/1 and A5/3 over time in chosen intervals
     sns.lineplot(x="timestamp", y="value", hue="variable", data=pd.melt(df_grouped, ['timestamp']))
-    #plt.show()
+    # plt.show()
     plt.title(f"Cumulative sum of Cipher Mode Commands in {args.interval} minute intervals")
     plt.xlabel("Time from Nov 14 to Nov 21 (each in the morning)")
     plt.ylabel("No. of CMCs")
@@ -154,22 +154,18 @@ if args.analyze:
     plt.gca().get_legend().legend_handles[1]._sizes = [6]
     # add a grid
     plt.grid()
-    #plt.show()
-
+    # plt.show()
 
     # Save plot to file
     logging.info(f"Saving plot to file at {os.getcwd()}/{file}.png")
     # Save plot to file with high dpi
     plt.savefig(f"plot_{file}.png", dpi=600)
 
-
-
-
     # Plotting percentage of A5/1 and A5/3 of all Cipher Mode Commands over time in chosen intervals
     df_grouped["a5_1_percentage"] = df_grouped["a5_1"] / (df_grouped["a5_1"] + df_grouped["a5_3"])
     df_grouped["a5_3_percentage"] = df_grouped["a5_3"] / (df_grouped["a5_1"] + df_grouped["a5_3"])
     df_grouped.drop(columns=["a5_1", "a5_3"], inplace=True, axis=1)
-    #print(df_grouped.head(5))
+    # print(df_grouped.head(5))
     # Make new plot only showing the percentages
     plt.clf()
     sns.lineplot(x="timestamp", y="a5_1_percentage", data=df_grouped)
@@ -181,4 +177,3 @@ if args.analyze:
     plt.locator_params(axis='x', nbins=20)
     plt.grid()
     plt.savefig(f"plot_percentage_{file}.png")
-
