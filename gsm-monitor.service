@@ -10,12 +10,12 @@ StartLimitBurst=10
 
 [Service]
 ExecStart=/usr/bin/docker run --rm \
--v /etc/timezone:/etc/timezone:ro \
--v /etc/localtime:/etc/localtime:ro \
--v "/home/$USER/output:/output" \
---device=/dev/bus/usb/001/ \
---cap-add=NET_RAW --cap-add=NET_ADMIN --cap-drop=ALL \
-gsm-monitor
+    -v /etc/timezone:/etc/timezone:ro \
+    -v /etc/localtime:/etc/localtime:ro \
+    -v "/home/$USER/output:/output" \
+    --device=/dev/bus/usb/001/ \
+    --cap-add=NET_RAW --cap-add=NET_ADMIN --cap-drop=ALL \
+    gsm-monitor
 
 # If antenna is plugged or not connected, the service will not start correctly
 # Try to restart the service / container every 30 seconds 

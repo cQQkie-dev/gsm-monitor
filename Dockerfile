@@ -62,9 +62,9 @@ RUN cd kalibrate-rtl \
 # and be called by "kal <args>"
 ENV PATH="/kalibrate-rtl/src:${PATH}"
 
-# Copy the gsm-monitor binary to the container
-COPY gsm-monitor /gsm-monitor
+# Copy the gsm-monitor script to the container
+COPY gsm-monitor gsm-monitor
 RUN chmod +x /gsm-monitor
 RUN mkdir /output
 
-ENTRYPOINT ["/gsm-monitor"]
+ENTRYPOINT ["/gsm-monitor", "--output-dir", "/output"]
