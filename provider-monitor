@@ -127,19 +127,19 @@ watchdog() {
 }
 
 # Check if grgsm_livemon is installed
-if ! [ -x "$(command -v grgsm_livemon_headless)" ]; then
+if ! command -v grgsm_livemon_headless >/dev/null 2>&1; then
     echo 'Error: grgsm_livemon is not installed.' >&2
     exit 1
 fi
 
 # Check if tshark is installed
-if ! [ -x "$(command -v tshark)" ]; then
+if ! command -v tshark >/dev/null 2>&1; then
     echo 'Error: tshark is not installed.' >&2
     exit 1
 fi
 
 # Check if kalibrate-rtl is installed
-if ! [ -x "$(command -v kal)" ]; then
+if ! command -v kal >/dev/null 2>&1; then
     echo 'Error: kalibrate-rtl is not installed.' >&2
     echo 'Please install kalibrate-rtl from https://github.com/steve-m/kalibrate-rtl'
     echo 'Add the kalibrate-rtl binary to your PATH by running the following command:'
