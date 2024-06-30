@@ -152,10 +152,10 @@ fi
 # the provider is given as only argument as a integer
 PROVIDER=${1:-}
 if [ -z "$PROVIDER" ]; then
-    echo "Provider not provided, please provide the provider as an integer"
-    echo "Usage: ./provider-monitor <provider>"
-    echo "Example: ./provider-monitor 1"
-    echo "German providers: 1 - Telekom, 2 - O2 , 3 - Vodafone"
+    echo "Provider not specified. Please specify the provider as an integer."
+    echo "Usage: $0 <provider>"
+    echo "Example: $0 1"
+    echo "German providers: 1 - Telekom, 2 - O2, 3 - Vodafone"
     exit 1
 fi
 
