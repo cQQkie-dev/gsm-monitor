@@ -107,7 +107,7 @@ start_tshark() {
     tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' \
         -T fields -e frame.number -e frame.time -e gsm_a.rr.algorithm_identifier \
         -E header=y -E separator=, -E quote=d -E occurrence=f \
-        >$(pwd)/output/tshark_"$FREQUENCY"_"$lai"_"$timestamp".csv &
+        > output/tshark_"$FREQUENCY"_"$lai"_"$timestamp".csv &
 }
 
 start_grgsm_livemon() {
