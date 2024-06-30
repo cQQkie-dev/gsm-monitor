@@ -72,9 +72,3 @@ ENTRYPOINT ["/provider-entrypoint.sh"]
 # 1 = Deutsche Telekom, 2 = O2 / Telefonica / E-Plus, 3 = Vodafone
 # Usage: docker run [other args] provider-monitor 1, see provider-monitor.service for more details
 CMD ["1"]  
-
-## Clutter to think about later
-# RUN groupadd -r user && useradd -r -g user user
-# RUN chsh -s /usr/sbin/nologin root
-# # Add a new user and set to the wireshark group
-# RUN useradd -m user -G wireshark
