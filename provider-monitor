@@ -85,13 +85,12 @@ find_provider_strongest_frequency() {
 # Use grgsm_livemon to capture the SI3 message and tshark to extract the LAI from the SI3 message
 find_lai() {
     grgsm_livemon_headless -f "$FREQUENCY" -g 40 >/dev/null &
-    # while lai is empty, keep running tshark to capture the SI3 message
-    # define variable lai to store the LAI
-    lai=""
-    while [ -z "$lai" ]; do
-        lai=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
+    # while LAI is empty, keep running tshark to capture the SI3 message
+    LAI=""
+    while [ -z "$LAI" ]; do
+        LAI=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
             -T fields -E separator=_ -e e212.lai.mcc -e e212.lai.mnc -e gsm_a.lac -e gsm_a.bssmap.cell_ci)
-        lai=$(echo "$lai" | head -1)
+        LAI=$(echo "$LAI" | head -1)
     done
     # correctly shutdown tshark and grgsm_livemon
     pkill -9 tshark || true
@@ -107,7 +106,7 @@ start_tshark() {
     tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' \
         -T fields -e frame.number -e frame.time -e gsm_a.rr.algorithm_identifier \
         -E header=y -E separator=, -E quote=d -E occurrence=f \
-        > "output/tshark_${FREQUENCY}_${lai}_${timestamp}.csv" &
+        > "output/tshark_${FREQUENCY}_${LAI}_${timestamp}.csv" &
 }
 
 start_grgsm_livemon() {
