@@ -3,7 +3,41 @@
 set -e
 set -u
 
-# Set debug mode
+print_usage() {
+    echo "Usage: $0 <provider>"
+    echo "Example: $0 1"
+    echo "German providers: 1 - Telekom, 2 - O2, 3 - Vodafone"
+}
+
+# Parse arguments
+POSITIONAL=()
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+    -h | --help)
+        print_usage
+        exit 0
+        ;;
+    -*)
+        echo >&2 "Error: Unknown option: $1"
+        print_usage
+        exit 1
+        ;;
+    *)
+        POSITIONAL+=("$1") # Save positional arguments in an array
+        shift
+        ;;
+    esac
+done
+set -- "${POSITIONAL[@]}" # Restore positional parameters
+
+PROVIDER=${1:-}
+if [ -z "$PROVIDER" ]; then
+    echo "Error: Provider not specified"
+    print_usage
+    exit 1
+fi
+
+# Enable debug mode
 set -xv
 
 # trap to kill all background processes when the script exits,
@@ -148,18 +182,7 @@ if ! command -v kal >/dev/null 2>&1; then
     exit 1
 fi
 
-# finding the strongest frequency in the area depending on the provider
-# the provider is given as only argument as a integer
-PROVIDER=${1:-}
-if [ -z "$PROVIDER" ]; then
-    echo "Provider not specified. Please specify the provider as an integer."
-    echo "Usage: $0 <provider>"
-    echo "Example: $0 1"
-    echo "German providers: 1 - Telekom, 2 - O2, 3 - Vodafone"
-    exit 1
-fi
-
-# Search for the strongest frequency for the provider
+# Search for the strongest frequency in the area for the specified provider
 find_provider_strongest_frequency
 
 # Find LAI of the strongest frequency to name the output file
