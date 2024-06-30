@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-import os
 import argparse
+import os
 import textwrap
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import datetime
 
 
 # rewrite create_plot.py

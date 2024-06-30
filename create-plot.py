@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
+import argparse
+import logging
 import os
 import subprocess
-import argparse
 import textwrap
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import logging
 import seaborn as sns
-import matplotlib.pyplot as plt
-import datetime
 
 
 def argument_parser():
