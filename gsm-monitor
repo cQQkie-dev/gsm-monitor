@@ -1,7 +1,6 @@
 #!/bin/bash
 
-set -e
-set -u
+set -euo pipefail
 
 print_usage() {
     cat <<EOF
@@ -66,7 +65,23 @@ set -xv
 # trap to kill all background processes when the script exits,
 # https://mywiki.wooledge.org/SignalTrap#Special_Note_On_SIGINT_and_SIGQUIT
 # https://stackoverflow.com/questions/360201/how-do-i-kill-background-processes-jobs-when-my-shell-script-exits
-trap 'kill $(jobs -p)' SIGINT SIGTERM EXIT
+trap 'JOBS=$(jobs -p); if [ -n "${JOBS}" ]; then kill "${JOBS}"; fi' SIGINT SIGTERM EXIT
+
+scan_frequencies() {
+    local kalibrate_output
+    local sorted_signals
+    kalibrate_output=$(kal -s EGSM 2>&1)
+
+    # If no supported devices are found, exit with code 1
+    if echo "$kalibrate_output" | grep -q "No supported devices found"; then
+        echo >&2 "No supported devices found"
+        exit 1
+    fi
+
+    sorted_signals=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | \
+                     sort -g -r)
+    echo "$sorted_signals"
+}
 
 # iterate over the strongest frequencies in the area until we find one for the chosen provider
 find_provider_strongest_frequency() {
@@ -77,9 +92,9 @@ find_provider_strongest_frequency() {
     sorted_signals=""
     # add check if kalibrate-rtl is not able to find any frequencies and rerun the command
     while [ -z "$sorted_signals" ]; do
-        kalibrate_output=$(kal -s EGSM 2>&1)
-        sorted_signals=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | \
-                         cut -d "," -f 2 | sort -g -r)
+        if ! sorted_signals=$(scan_frequencies); then
+            exit 1
+        fi
     done
     readarray -t values <<<"$sorted_signals"
     for value in "${values[@]}"; do
@@ -107,15 +122,17 @@ find_provider_strongest_frequency() {
 # area with kalibrate-rtl and set the frequency to the strongest signal
 find_strongest_frequency() {
     local max_power
+    local sorted_signals
     local strongest_frequency
     local kalibrate_output
     max_power=""
     kalibrate_output=$(kal -s EGSM 2>&1)
     # add check if kalibrate-rtl is not able to find any frequencies and rerun the command
     while [ -z "$max_power" ]; do
-        kalibrate_output=$(kal -s EGSM 2>&1)
-        max_power=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | \
-                    sort -g -r | head -1)
+        if ! sorted_signals=$(scan_frequencies); then
+            exit 1
+        fi
+        max_power=$(echo "$sorted_signals" | head -1)
     done
     strongest_frequency=$(echo "$kalibrate_output" | grep "$max_power" | awk '{print $3}' | cut -d "(" -f 2 | \
                           head -1 | cut -d "H" -f 1)
@@ -207,7 +224,7 @@ watchdog() {
     fi
 }
 
-if [ -n "$PROVIDER" ] && [ -n "$FREQUENCY" ]; then
+if [ -n "${PROVIDER:-}" ] && [ -n "${FREQUENCY:-}" ]; then
     echo >&2 "Error: --provider and --frequency can't be used together"
     print_usage
     exit 1
@@ -235,9 +252,9 @@ if ! command -v kal >/dev/null 2>&1; then
     exit 1
 fi
 
-if [ -n "$PROVIDER" ]; then
+if [ -n "${PROVIDER:-}" ]; then
     FREQUENCY=$(find_provider_strongest_frequency)
-elif [ -z "$FREQUENCY" ]; then
+elif [ -z "${FREQUENCY:-}" ]; then
     FREQUENCY=$(find_strongest_frequency)
 fi
 
