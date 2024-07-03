@@ -93,6 +93,7 @@ find_provider_strongest_frequency() {
         kalibrate_output=$(kal -s EGSM 2>&1)
         sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
 
+        # Iterate over the sorted signals and return the first frequency that belongs to the specified provider
         local values value
         readarray -t values <<<"$sorted_signals"
         for value in "${values[@]}"; do
@@ -101,6 +102,8 @@ find_provider_strongest_frequency() {
             # set current frequency to the frequency of the current signal value
             current_frequency=$(echo "$kalibrate_output" | grep "${value}" | awk '{print $3}' | \
                                 cut -d "(" -f 2 | head -1 | cut -d "H" -f 1)
+
+            # Use grgsm_livemon and tshark to find the provider number of the current frequency
             grgsm_livemon_headless -f "${current_frequency}" -g 40 >/dev/null &
             while [ -z "$provider_no" ]; do
                 provider_no=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
@@ -109,6 +112,8 @@ find_provider_strongest_frequency() {
             done
             pkill -9 tshark || true
             pkill -9 grgsm_livemon || true
+
+            # Return if the provider matches
             if [ "${provider_no}" -eq "${PROVIDER}" ]; then
                 echo "${current_frequency}"
                 return
