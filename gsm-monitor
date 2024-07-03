@@ -78,7 +78,6 @@ find_provider_strongest_frequency() {
     local sorted_signals
     local provider_no
     provider_no=""
-    sorted_signals=""
     kalibrate_output=$(kal -s EGSM 2>&1)
 
     # If no supported devices are found, exit with code 1
@@ -89,30 +88,32 @@ find_provider_strongest_frequency() {
 
     sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
 
-    # Keep scanning for signals until at least one signal was found
-    while [ -z "$sorted_signals" ]; do
+    # Keep scanning for signals until we found a signal for the provider
+    while true; do
         kalibrate_output=$(kal -s EGSM 2>&1)
         sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
-    done
-    readarray -t values <<<"$sorted_signals"
-    for value in "${values[@]}"; do
-        # set current provider back to empty string, otherwise it will keep the value from the previous iteration
-        provider_no=""
-        # set current frequency to the frequency of the current signal value
-        current_frequency=$(echo "$kalibrate_output" | grep "${value}" | awk '{print $3}' | \
-                            cut -d "(" -f 2 | head -1 | cut -d "H" -f 1)
-        grgsm_livemon_headless -f "${current_frequency}" -g 40 >/dev/null &
-        while [ -z "$provider_no" ]; do
-            provider_no=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
-                -T fields -e e212.lai.mnc)
-            provider_no=$(echo "$provider_no" | head -1)
+
+        local values value
+        readarray -t values <<<"$sorted_signals"
+        for value in "${values[@]}"; do
+            # set current provider back to empty string, otherwise it will keep the value from the previous iteration
+            provider_no=""
+            # set current frequency to the frequency of the current signal value
+            current_frequency=$(echo "$kalibrate_output" | grep "${value}" | awk '{print $3}' | \
+                                cut -d "(" -f 2 | head -1 | cut -d "H" -f 1)
+            grgsm_livemon_headless -f "${current_frequency}" -g 40 >/dev/null &
+            while [ -z "$provider_no" ]; do
+                provider_no=$(tshark -i lo -a duration:4 -f udp -w - | tshark -r - -l -Y 'gsm_a.dtap.msg_rr_type==0x1b' \
+                    -T fields -e e212.lai.mnc)
+                provider_no=$(echo "$provider_no" | head -1)
+            done
+            pkill -9 tshark || true
+            pkill -9 grgsm_livemon || true
+            if [ "${provider_no}" -eq "${PROVIDER}" ]; then
+                echo "${current_frequency}"
+                return
+            fi
         done
-        pkill -9 tshark || true
-        pkill -9 grgsm_livemon || true
-        if [ "${provider_no}" -eq "${PROVIDER}" ]; then
-            echo "${current_frequency}"
-            break
-        fi
     done
 }
 
