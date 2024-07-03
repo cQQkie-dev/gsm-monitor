@@ -67,20 +67,9 @@ set -xv
 # https://stackoverflow.com/questions/360201/how-do-i-kill-background-processes-jobs-when-my-shell-script-exits
 trap 'JOBS=$(jobs -p); if [ -n "${JOBS}" ]; then kill "${JOBS}"; fi' SIGINT SIGTERM EXIT
 
-scan_frequencies() {
-    local kalibrate_output
-    local sorted_signals
-    kalibrate_output=$(kal -s EGSM 2>&1)
-
-    # If no supported devices are found, exit with code 1
-    if echo "$kalibrate_output" | grep -q "No supported devices found"; then
-        echo >&2 "No supported devices found"
-        exit 1
-    fi
-
-    sorted_signals=$(echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | \
-                     sort -g -r)
-    echo "$sorted_signals"
+sorted_signals_from_kalibrate_output() {
+    local kalibrate_output=$1
+    echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | sort -g -r
 }
 
 # iterate over the strongest frequencies in the area until we find one for the chosen provider
@@ -90,11 +79,20 @@ find_provider_strongest_frequency() {
     local provider_no
     provider_no=""
     sorted_signals=""
-    # add check if kalibrate-rtl is not able to find any frequencies and rerun the command
+    kalibrate_output=$(kal -s EGSM 2>&1)
+
+    # If no supported devices are found, exit with code 1
+    if echo "$kalibrate_output" | grep -q "No supported devices found"; then
+        echo >&2 "No supported devices found"
+        exit 1
+    fi
+
+    sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
+
+    # Keep scanning for signals until at least one signal was found
     while [ -z "$sorted_signals" ]; do
-        if ! sorted_signals=$(scan_frequencies); then
-            exit 1
-        fi
+        kalibrate_output=$(kal -s EGSM 2>&1)
+        sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
     done
     readarray -t values <<<"$sorted_signals"
     for value in "${values[@]}"; do
@@ -127,13 +125,22 @@ find_strongest_frequency() {
     local kalibrate_output
     max_power=""
     kalibrate_output=$(kal -s EGSM 2>&1)
-    # add check if kalibrate-rtl is not able to find any frequencies and rerun the command
-    while [ -z "$max_power" ]; do
-        if ! sorted_signals=$(scan_frequencies); then
-            exit 1
-        fi
-        max_power=$(echo "$sorted_signals" | head -1)
+
+    # If no supported devices are found, exit with code 1
+    if echo "$kalibrate_output" | grep -q "No supported devices found"; then
+        echo >&2 "No supported devices found"
+        exit 1
+    fi
+
+    sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
+
+    # Keep scanning for signals until at least one signal was found
+    while [ -z "$sorted_signals" ]; do
+        kalibrate_output=$(kal -s EGSM 2>&1)
+        sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
     done
+
+    max_power=$(echo "$sorted_signals" | head -1)
     strongest_frequency=$(echo "$kalibrate_output" | grep "$max_power" | awk '{print $3}' | cut -d "(" -f 2 | \
                           head -1 | cut -d "H" -f 1)
     echo "${strongest_frequency}"
