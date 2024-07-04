@@ -255,6 +255,7 @@ watchdog() {
         pkill grgsm_livemon
         pkill tshark
         # call grgsm_collector function
+        sleep 5
         start_tshark
         start_grgsm_livemon "$frequency"
     fi
