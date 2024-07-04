@@ -181,12 +181,11 @@ start_tshark() {
     # Use a timestamp for the filename
     local timestamp
     timestamp=$(date +%s)
-    filename="${OUTPUT_DIR}/tshark_${FREQUENCY}_${LAI}_${timestamp}.csv"
     # Start capture and parallely run grgsm_livemon
     tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' \
         -T fields -e frame.number -e frame.time -e gsm_a.rr.algorithm_identifier \
         -E header=y -E separator=, -E quote=d -E occurrence=f \
-        > ${filename} &
+        > "${OUTPUT_DIR}/tshark_${FREQUENCY}_${LAI}_${timestamp}.csv" &
 }
 
 # watchdog function to check if grgsm_livemon and tshark are running
@@ -222,10 +221,11 @@ watchdog() {
 
     # count number of packets received
     local num_packets
-    num_packets=$(tshark -r /tmp/tshark.pcap | wc -l)
+    #num_packets=$(tshark -r /tmp/tshark.pcap | wc -l)
+    num_packets=$(tshark -r /tmp/tshark.pcap -Y 'gsm_a.dtap.msg_rr_type==0x1b' | wc -l)
 
     # if number of received packets is smaller than 100, then exit with code 1
-    if [ "$num_packets" -lt 100 ]; then
+    if [ "$num_packets" -lt 20 ]; then
         echo "Number of packets received: $num_packets is less than expected"
         echo "Restarting grgsm_collector"
         # end grgsm_collector process
@@ -283,11 +283,11 @@ start_grgsm_livemon "$FREQUENCY"
 # Initialize variables
 # unchanged_count: number of times the output file has not changed
 # trying to detect when antenna is disconnected or got replugged / 
-# unplugged
-unchanged_count=0
-previous_length=0
-current_length=0
-max_unchanged_count=5
+# # unplugged
+# unchanged_count=0
+# previous_length=0
+# current_length=0
+# max_unchanged_count=5
 
 # While loop to run watchdog function every 5 minutes
 while true; do
@@ -297,23 +297,23 @@ while true; do
     wait $!
     watchdog "$FREQUENCY"
 
-    previous_length=$current_length
-    # Check if the output file has not changed for the last 5 iterations
-    current_length=$(wc -l < "${filename}")
+    # previous_length=$current_length
+    # # Check if the output file has not changed for the last 5 iterations
+    # current_length=$(wc -l < "${filename}")
 
-    if [ "$current_length" -eq "$previous_length" ]; then
-        unchanged_count=$((unchanged_count + 1))
-    else
-        unchanged_count=0
-    fi
+    # if [ "$current_length" -eq "$previous_length" ]; then
+    #     unchanged_count=$((unchanged_count + 1))
+    # else
+    #     unchanged_count=0
+    # fi
 
-    # Check if the file length has been unchanged for 5 times
-    if [ "$unchanged_count" -ge "$max_unchanged_count" ]; then
-        echo "File length has not changed for $max_unchanged_count times. Exiting."
-        exit 1
-    fi
+    # # Check if the file length has been unchanged for 5 times
+    # if [ "$unchanged_count" -ge "$max_unchanged_count" ]; then
+    #     echo "File length has not changed for $max_unchanged_count times. Exiting."
+    #     exit 1
+    # fi
 
-    # Update previous length
-    previous_length=$current_length
+    # # Update previous length
+    # previous_length=$current_length
 
 done
