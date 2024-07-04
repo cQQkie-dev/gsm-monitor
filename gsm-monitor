@@ -74,6 +74,7 @@ sorted_signals_from_kalibrate_output() {
     local kalibrate_output=$1
     #echo "$kalibrate_output" | grep -v "^E-GSM-900:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | sort -g -r
     echo "$kalibrate_output" | grep "chan:" | awk '{print $2 "," $7}' | cut -d "," -f 2 | sort -g -r
+}
 
 # iterate over the strongest frequencies in the area until we find one for the chosen provider
 find_provider_strongest_frequency() {
