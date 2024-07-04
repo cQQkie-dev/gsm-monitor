@@ -17,11 +17,11 @@ Options:
     Show this help message and exit
   --frequency
     Frequency to monitor (default: strongest frequency in the area)
-    Cannot be used in conjunction with --provider.
+    Cannot be used in conjunction with --provider
   --provider
-    MNC of the provider to monitor (in Germany: 1 - Telekom, 2 - O2, 3 - Vodafone).
+    MNC of the provider to monitor (e.g. in Germany: 1 - Telekom, 2 - O2, 3 - Vodafone).
     If not provided, any provider will be monitored.
-    Cannot be used in conjunction with --frequency.
+    Cannot be used in conjunction with --frequency
   --output-dir
     Directory to write the output files to (default: current directory)
 EOF
