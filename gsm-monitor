@@ -66,7 +66,9 @@ set -xv
 # trap to kill all background processes when the script exits,
 # https://mywiki.wooledge.org/SignalTrap#Special_Note_On_SIGINT_and_SIGQUIT
 # https://stackoverflow.com/questions/360201/how-do-i-kill-background-processes-jobs-when-my-shell-script-exits
-trap 'JOBS=$(jobs -p); if [ -n "${JOBS}" ]; then kill "${JOBS}"; fi' SIGINT SIGTERM EXIT
+trap 'JOBS=$(jobs -p); if [ -n "${JOBS}" ]; then kill ${JOBS}; fi' SIGINT SIGTERM EXIT
+#trap 'kill $(jobs -p)' SIGINT SIGTERM EXIT
+
 
 sorted_signals_from_kalibrate_output() {
     local kalibrate_output=$1
@@ -179,12 +181,12 @@ start_tshark() {
     # Use a timestamp for the filename
     local timestamp
     timestamp=$(date +%s)
-
+    filename="${OUTPUT_DIR}/tshark_${FREQUENCY}_${LAI}_${timestamp}.csv"
     # Start capture and parallely run grgsm_livemon
     tshark -i lo -f udp -w - | tshark -r - -l -Y 'gsm_a.rr.algorithm_identifier' \
         -T fields -e frame.number -e frame.time -e gsm_a.rr.algorithm_identifier \
         -E header=y -E separator=, -E quote=d -E occurrence=f \
-        > "${OUTPUT_DIR}/tshark_${FREQUENCY}_${LAI}_${timestamp}.csv" &
+        > ${filename} &
 }
 
 # watchdog function to check if grgsm_livemon and tshark are running
@@ -277,6 +279,16 @@ LAI=$(find_lai "$FREQUENCY")
 start_tshark
 start_grgsm_livemon "$FREQUENCY"
 
+
+# Initialize variables
+# unchanged_count: number of times the output file has not changed
+# trying to detect when antenna is disconnected or got replugged / 
+# unplugged
+unchanged_count=0
+previous_length=0
+current_length=0
+max_unchanged_count=5
+
 # While loop to run watchdog function every 5 minutes
 while true; do
     # Run sleep in background and wait in the foreground to be able to
@@ -284,4 +296,24 @@ while true; do
     sleep 300 &
     wait $!
     watchdog "$FREQUENCY"
+
+    previous_length=$current_length
+    # Check if the output file has not changed for the last 5 iterations
+    current_length=$(wc -l < "${filename}")
+
+    if [ "$current_length" -eq "$previous_length" ]; then
+        unchanged_count=$((unchanged_count + 1))
+    else
+        unchanged_count=0
+    fi
+
+    # Check if the file length has been unchanged for 5 times
+    if [ "$unchanged_count" -ge "$max_unchanged_count" ]; then
+        echo "File length has not changed for $max_unchanged_count times. Exiting."
+        exit 1
+    fi
+
+    # Update previous length
+    previous_length=$current_length
+
 done
