@@ -78,19 +78,17 @@ find_provider_strongest_frequency() {
     local sorted_signals
     local provider_no
     provider_no=""
-    kalibrate_output=$(kal -s EGSM 2>&1)
-
-    # If no supported devices are found, exit with code 1
-    if echo "$kalibrate_output" | grep -q "No supported devices found"; then
-        echo >&2 "No supported devices found"
-        exit 1
-    fi
-
-    sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
 
     # Keep scanning for signals until we found a signal for the provider
     while true; do
         kalibrate_output=$(kal -s EGSM 2>&1)
+
+        # If no supported devices are found, exit with code 1
+        if echo "$kalibrate_output" | grep -q "No supported devices found"; then
+            echo >&2 "No supported devices found"
+            exit 1
+        fi
+
         sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
 
         # Iterate over the sorted signals and return the first frequency that belongs to the specified provider
@@ -130,19 +128,21 @@ find_strongest_frequency() {
     local strongest_frequency
     local kalibrate_output
     max_power=""
-    kalibrate_output=$(kal -s EGSM 2>&1)
+    sorted_signals=""
 
-    # If no supported devices are found, exit with code 1
-    if echo "$kalibrate_output" | grep -q "No supported devices found"; then
-        echo >&2 "No supported devices found"
-        exit 1
-    fi
 
     sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
 
     # Keep scanning for signals until at least one signal was found
     while [ -z "$sorted_signals" ]; do
         kalibrate_output=$(kal -s EGSM 2>&1)
+
+        # If no supported devices are found, exit with code 1
+        if echo "$kalibrate_output" | grep -q "No supported devices found"; then
+            echo >&2 "No supported devices found"
+            exit 1
+        fi
+        
         sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
     done
 
