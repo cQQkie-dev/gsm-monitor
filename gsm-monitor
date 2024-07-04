@@ -91,9 +91,15 @@ find_provider_strongest_frequency() {
             echo >&2 "No supported devices found"
             exit 1
         fi
+
         # If kalibrate-rtl failed to open the rtlsdr device, exit with code 1
-        if eche "$kalibrate_output" | grep -q "Failed to open rtlsdr device"; then
+        if echo "$kalibrate_output" | grep -q "Failed to open rtlsdr device"; then
             echo >&2 "Failed to open rtlsdr device"
+            exit 1
+        fi
+
+        if echo "$kalibrate_output" | grep -q "error"; then
+            echo >&2 "An error occurred while running kalibrate-rtl"
             exit 1
         fi
 
@@ -148,9 +154,15 @@ find_strongest_frequency() {
             exit 1
         fi
 
+        
         # If kalibrate-rtl failed to open the rtlsdr device, exit with code 1
-        if eche "$kalibrate_output" | grep -q "Failed to open rtlsdr device"; then
+        if echo "$kalibrate_output" | grep -q "Failed to open rtlsdr device"; then
             echo >&2 "Failed to open rtlsdr device"
+            exit 1
+        fi
+
+        if echo "$kalibrate_output" | grep -q "error"; then
+            echo >&2 "An error occurred while running kalibrate-rtl"
             exit 1
         fi
         
