@@ -253,12 +253,14 @@ watchdog() {
         echo "Number of packets received: $num_packets is less than expected"
         echo "Restarting grgsm_collector"
         # end grgsm_collector process
-        pkill grgsm_livemon
-        pkill tshark
+        pkill -9 grgsm_livemon
+        pkill -9 tshark
+        # exit instead of restarting grgsm_collector
+        exit 1  
         # call grgsm_collector function
-        sleep 5
-        start_tshark
-        start_grgsm_livemon "$frequency"
+        # sleep 5
+        # start_tshark
+        # start_grgsm_livemon "$frequency"
     fi
 }
 
