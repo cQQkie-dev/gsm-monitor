@@ -62,6 +62,23 @@ RUN cd kalibrate-rtl \
 # and be called by "kal <args>"
 ENV PATH="/kalibrate-rtl/src:${PATH}"
 
+# # Required to for correct driver management https://www.rtl-sdr.com/tag/install-guide/
+# RUN apt purge -y ^librtlsdr \
+#     && rm -rf /usr/lib/librtlsdr* /usr/include/rtl-sdr* /usr/local/lib/librtlsdr* /usr/local/include/rtl-sdr* /usr/local/include/rtl_* /usr/local/bin/rtl_* \
+#     && apt-get install libusb-1.0-0-dev \
+#     && git clone https://github.com/rtlsdrblog/rtl-sdr-blog.git \
+#     && cd rtl-sdr-blog/ \
+#     && mkdir build \
+#     && cd build \
+#     && cmake ../ -DINSTALL_UDEV_RULES=ON \
+#     && make \
+#     && make install \
+#     && cp ../rtl-sdr.rules /etc/udev/rules.d/ \
+#     && ldconfig \
+    # For a permanent solution, create a text file "rtlsdr.conf" in /etc/modprobe.d and add the line "blacklist dvb_usb_rtl28xxu".
+RUN echo 'blacklist dvb_usb_rtl28xxu' | tee --append /etc/modprobe.d/blacklist-dvb_usb_rtl28xxu.conf
+
+
 # Copy the gsm-monitor script to the container
 COPY gsm-monitor gsm-monitor
 RUN chmod +x /gsm-monitor
