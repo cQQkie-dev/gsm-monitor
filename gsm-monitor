@@ -124,7 +124,7 @@ find_provider_strongest_frequency() {
                 provider_no=$(echo "$provider_no" | head -1)
             done
             pkill -9 tshark || true
-            pkill -9 grgsm_livemon || true
+            pkill -9 -f grgsm_livemon_headless || true
 
             # Return if the provider matches
             if [ "${provider_no}" -eq "${PROVIDER}" ]; then
@@ -192,7 +192,7 @@ find_lai() {
     done
     # correctly shutdown tshark and grgsm_livemon
     pkill -9 tshark || true
-    pkill -9 grgsm_livemon || true
+    pkill -9 -f grgsm_livemon_headless || true
     echo "$lai"
 }
 
@@ -253,7 +253,7 @@ watchdog() {
         echo "Number of packets received: $num_packets is less than expected"
         echo "Restarting grgsm_collector"
         # end grgsm_collector process
-        pkill -9 grgsm_livemon
+        pkill -9 -f grgsm_livemon_headless
         pkill -9 tshark
         # exit instead of restarting grgsm_collector
         exit 1  
