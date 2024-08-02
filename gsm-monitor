@@ -104,14 +104,6 @@ find_provider_strongest_frequency() {
             exit 1
         fi
 
-        if echo "$kalibrate_output" | grep -q "chan:"; then
-            echo "The variable kalibrate_output found channels."
-        else
-            echo "The variable kalibrate_output does not contain any channels."
-            exit 1
-        fi
-
-        if echo "$kalibrate_output" | grep 
         sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
         
         # Check if sorted_signals is empty
@@ -178,13 +170,6 @@ find_strongest_frequency() {
 
         if echo "$kalibrate_output" | grep -q "error"; then
             echo >&2 "An error occurred while running kalibrate-rtl"
-            exit 1
-        fi
-
-        if echo "$kalibrate_output" | grep -q "chan:"; then
-            echo "The variable kalibrate_output found channels."
-        else
-            echo "The variable kalibrate_output does not contain any channels."
             exit 1
         fi
         
