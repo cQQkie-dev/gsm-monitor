@@ -104,7 +104,21 @@ find_provider_strongest_frequency() {
             exit 1
         fi
 
+        if echo "$kalibrate_output" | grep -q "chan:"; then
+            echo "The variable kalibrate_output found channels."
+        else
+            echo "The variable kalibrate_output does not contain any channels."
+            exit 1
+        fi
+
+        if echo "$kalibrate_output" | grep 
         sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
+        
+        # Check if sorted_signals is empty
+        if [ -z "$sorted_signals" ]; then
+            echo "No signals found. Retrying..."
+            continue
+        fi
 
         # Iterate over the sorted signals and return the first frequency that belongs to the specified provider
         local values value
@@ -166,8 +180,21 @@ find_strongest_frequency() {
             echo >&2 "An error occurred while running kalibrate-rtl"
             exit 1
         fi
+
+        if echo "$kalibrate_output" | grep -q "chan:"; then
+            echo "The variable kalibrate_output found channels."
+        else
+            echo "The variable kalibrate_output does not contain any channels."
+            exit 1
+        fi
         
         sorted_signals=$(sorted_signals_from_kalibrate_output "$kalibrate_output")
+        
+        # Check if sorted_signals is empty
+        if [ -z "$sorted_signals" ]; then
+            echo "No signals found. Retrying..."
+            continue
+        fi
     done
 
     max_power=$(echo "$sorted_signals" | head -1)
